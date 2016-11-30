@@ -37,10 +37,72 @@ router.get('/books/:id', (_req, res, next) => {
 });
 
 router.post('/books', (req, res, next) => {
-  const camelizedBook = humps.camelizeKeys(req.body);
+  const decamelizedBook = humps.decamelizeKeys(req.body);
+  knex('books')
+  .insert({
+    title: decamelizedBook.title,
+    author: decamelizedBook.author,
+    genre: decamelizedBook.genre,
+    description: decamelizedBook.description,
+    cover_url: decamelizedBook.cover_url
+  }, ['id', 'title', 'author', 'genre', 'description', 'cover_url'])
+  .then((books) => {
+    res.send(humps.camelizeKeys(books[0]));
+  })
+  .catch((err) => {
+    next(err);
+  });
 
+});
 
-  
+router.patch('/books/:id', (req, res, next) => {
+  const decamelizedBook = humps.decamelizeKeys(req.body);
+  knex('books')
+  .where('id', req.params.id)
+  .first()
+  .then((book) => {
+    if(!book){
+      return next();
+    }
+    return knex('books')
+      .update({
+        title: decamelizedBook.title,
+        author: decamelizedBook.author,
+        genre: decamelizedBook.genre,
+        description: decamelizedBook.description,
+        cover_url: decamelizedBook.cover_url
+      }, ['id', 'title', 'author', 'genre', 'description', 'cover_url'])
+      .where('id', req.params.id);
+  })
+  .then((book) => {
+    res.send(humps.camelizeKeys(book[0]));
+  })
+  .catch((err) => {
+    next(err);
+  });
+});
+
+router.delete('/books/:id', (req, res, next) => {
+  let book;
+  knex('books')
+  .where('id', req.params.id)
+  .first()
+  .then((row) => {
+    if(!row) {
+      return next();
+    }
+    book = row;
+    return knex('books')
+    .del()
+    .where('id', req.params.id);
+  })
+    .then(() => {
+    delete book.id;
+    res.send(humps.camelizeKeys(book));
+})
+  .catch((err) => {
+    next(err);
+  });
 });
 
 

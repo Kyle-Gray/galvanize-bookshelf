@@ -5,6 +5,7 @@ const knex = require('../knex');
 // eslint-disable-next-line new-cap
 const router = express.Router();
 const humps = require('humps');
+const boom = require('boom');
 
 router.get('/books', (_req, res, next) => {
   knex('books')
@@ -19,9 +20,12 @@ router.get('/books', (_req, res, next) => {
     });
 });
 
-router.get('/books/:id', (_req, res, next) => {
+router.get('/books/:id', (req, res, next) => {
+  if (isNaN(req.params.id)){
+    return next();
+  }
   knex('books')
-    .where('id', _req.params.id)
+    .where('id', req.params.id)
     .first()
     .then((books) => {
       if (!books) {
@@ -38,15 +42,28 @@ router.get('/books/:id', (_req, res, next) => {
 
 router.post('/books', (req, res, next) => {
   const decamelizedBook = humps.decamelizeKeys(req.body);
-  knex('books')
-  .insert({
+  const bookObj = {
     title: decamelizedBook.title,
     author: decamelizedBook.author,
     genre: decamelizedBook.genre,
     description: decamelizedBook.description,
     cover_url: decamelizedBook.cover_url
-  }, ['id', 'title', 'author', 'genre', 'description', 'cover_url'])
+  };
+  if(req.body.title === undefined){
+     next(boom.create(400, "Title must not be blank"));
+  } else if(bookObj.author === undefined){
+    next(boom.create(400, "Author must not be blank"));
+  } else if(bookObj.genre === undefined){
+    next(boom.create(400, "Genre must not be blank"));
+  } else if (bookObj.description === undefined){
+    next(boom.create(400, "Description must not be blank"));
+  }else if (bookObj.cover_url === undefined){
+    next(boom.create(400, "Cover URL must not be blank"));
+  }
+  knex('books')
+  .insert(bookObj, ['id', 'title', 'author', 'genre', 'description', 'cover_url'])
   .then((books) => {
+    res.set('Content-Type', 'text/plain');
     res.send(humps.camelizeKeys(books[0]));
   })
   .catch((err) => {
@@ -78,7 +95,7 @@ router.patch('/books/:id', (req, res, next) => {
     res.send(humps.camelizeKeys(book[0]));
   })
   .catch((err) => {
-    next(err);
+    next(boom.create(404, "Not Found"));
   });
 });
 
@@ -101,16 +118,9 @@ router.delete('/books/:id', (req, res, next) => {
     res.send(humps.camelizeKeys(book));
 })
   .catch((err) => {
-    next(err);
+    next(boom.create(404, "Not Found"));
   });
 });
-
-
-
-
-
-
-
 
 
 module.exports = router;

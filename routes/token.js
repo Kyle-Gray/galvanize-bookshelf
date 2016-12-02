@@ -2,7 +2,7 @@
 
 const express = require('express');
 // eslint-disable-next-line new-cap
-const cookieParser = require('cookie-parser');
+// const cookie = require('cookie-session');
 const knex = require('../knex');
 const boom = require('boom');
 const jwt = require('jsonwebtoken');
@@ -13,7 +13,19 @@ const {
     camelizeKeys,
     decamelizeKeys
 } = require('humps');
+
 // YOUR CODE HERE
+router.get('/token', function(req, res, next){
+  if (!req.cookies.token) {
+      res.status(200).send(false);
+    } else {
+      res.status(200).send(true);
+    }
+  });
+
+
+
+
 router.post('/token', function(req, res, next) {
     const {
         email,
@@ -26,27 +38,33 @@ router.post('/token', function(req, res, next) {
             if (!result) {
                 return next(boom.create(400, 'Bad email or password'));
             }
-            console.log(result);
-            var hash = bcrypt.hashSync(password, 8);
-            bcrypt.compare(password, hash, function(err, res) {
-                if (res) {
+            bcrypt.compare(password, result.hashed_password, function(err, ress) {
+                if (ress) {
                     return knex('users')
                         .select('id', 'email', 'first_name', 'last_name')
                         .where('email', email)
                         .first()
                         .then(results => {
-                            console.log('made it!');
-                            // let token = jwt.sign({ email: email, password: res.hashed_password }, process.env.JWT_SECRET);
-                            // res.cookie('token', token, { httpOnly: true });
-                            // res.send(camelizeKeys(results));
+                            // console.log(results);
+                            let token = jwt.sign({ email: email, password: res.hashed_password }, process.env.JWT_SECRET);
+                            // console.log(token);
+                            res.cookie('token', token, { httpOnly: true });
+                            res.send(camelizeKeys(results));
+                        })
+                        .catch((err)=> {
+                        return next(boom.create(400, 'Bad email or password'));
                         });
+                } else {
+                  return next(boom.create(400, 'Bad email or password'));
                 }
             });
-            console.log('made it to then end');
         });
 });
 
-
+router.delete('/token', (req, res, next) => {
+  res.clearCookie('token');
+  res.status(200).send(true);
+});
 
 
 module.exports = router;

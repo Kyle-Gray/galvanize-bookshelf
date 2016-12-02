@@ -10,8 +10,11 @@ const app = express();
 app.disable('x-powered-by');
 
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser')
+// const cookieParser = require('cookie-parser')
 const morgan = require('morgan');
+
+var cookieSession = require('cookie-session');
+
 
 switch (app.get('env')) {
   case 'development':
@@ -26,7 +29,14 @@ switch (app.get('env')) {
 }
 
 app.use(bodyParser.json());
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['supersecretkey'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
+
 
 const path = require('path');
 

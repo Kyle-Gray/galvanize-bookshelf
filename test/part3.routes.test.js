@@ -35,6 +35,8 @@ suite('part3 routes', () => {
   test('POST /users', (done) => {
     const password = 'ilikebigcats';
 
+    console.log(">>> ABOUT TO TEST");
+
     request(server)
       .post('/users')
       .set('Accept', 'application/json')
@@ -65,6 +67,8 @@ suite('part3 routes', () => {
           .where('id', 2)
           .first()
           .then((user) => {
+            console.log(">>> " + Object.keys(user));
+
             const hashedPassword = user.hashed_password;
 
             delete user.hashed_password;
